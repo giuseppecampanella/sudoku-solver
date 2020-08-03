@@ -28,24 +28,7 @@ class Sudoku():
                 print()
         print()
 
-    def check_possibile_value(self, v, x, y):
-        for i in range(0, 9):
-            if(self.m[x][i] == v):
-                return False
-
-        for i in range(0, 9):
-            if(self.m[i][y] == v):
-                return False
-
-        # check the square
-        x0, y0 = (x//3)*3, (y//3)*3
-        for i in range(x0,x0 + 3):
-            for j in range(y0,y0 + 3):
-                if(self.m[i][j] == v):
-                    return False
-
-        return True
-
+    # check if the value is valid in the row, column and square
     def check_value(self, v, x, y):
         for i in range(0, 9):
             if(i!=y and self.m[x][i] == v):
@@ -69,7 +52,7 @@ class Sudoku():
             for j in range(0,9):
                 if(self.m[i][j] == 0):
                     for val in range(1, 10):
-                        if(self.check_possibile_value(val, i, j)):
+                        if(self.check_value(val, i, j)):
                             self.m[i][j] = val
                             if(self.solve()):
                                 return True
@@ -120,6 +103,7 @@ class Sudoku():
                 entry.insert(0, "")
                 entry.config({"background" : "white"})
 
+    # check if the input given is valid or not
     def check_input_sudoku(self):
         self.valid_input = True
         for i in range(0,9):
