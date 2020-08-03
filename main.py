@@ -4,6 +4,7 @@
 #-------------------------------------------
 
 import tkinter as tk
+from tkinter import messagebox
 
 class Sudoku():
     def __init__(self, m, entries):
@@ -27,7 +28,7 @@ class Sudoku():
                 print()
         print()
 
-    def check_value(self, v, x, y):
+    def check_possibile_value(self, v, x, y):
         for i in range(0, 9):
             if(self.m[x][i] == v):
                 return False
@@ -45,12 +46,30 @@ class Sudoku():
 
         return True
 
+    def check_value(self, v, x, y):
+        for i in range(0, 9):
+            if(i!=y and self.m[x][i] == v):
+                return False
+
+        for i in range(0, 9):
+            if(i!=x and self.m[i][y] == v):
+                return False
+
+        # check the square
+        x0, y0 = (x//3)*3, (y//3)*3
+        for i in range(x0,x0 + 3):
+            for j in range(y0,y0 + 3):
+                if(i!=x and j!=y and self.m[i][j] == v):
+                    return False
+
+        return True
+
     def solve(self):
         for i in range(0,9):
             for j in range(0,9):
                 if(self.m[i][j] == 0):
                     for val in range(1, 10):
-                        if(self.check_value(val, i, j)):
+                        if(self.check_possibile_value(val, i, j)):
                             self.m[i][j] = val
                             if(self.solve()):
                                 return True
@@ -66,18 +85,29 @@ class Sudoku():
                 val = self.m[i][j]
                 entry = self.entries[i][j]
                 entry.delete(0, tk.END)
+                if(val == 0):
+                    val = ""
                 entry.insert(0, val)
 
     def solve_sudoku(self):
-        self.read_sudoku_from_window()
-        self.solve()
-        self.print_solution()
+        self.check_input()
+        if(self.valid_input):
+            is_solvable = self.solve()
+            if(is_solvable):
+                self.print_solution()
+            else:
+                messagebox.showwarning("Warning", "This input did not led to a solution. Try another input.")
 
     def read_sudoku_from_window(self):
         for i in range(0,9):
             for j in range(0,9):
                 entry = self.entries[i][j]
-                val = int(entry.get())
+                entry.config({"background" : "white"})
+                val = entry.get()
+                if(len(val) == 0):
+                    val = 0
+                else:
+                    val = int(val)
                 if(val < 1 or val > 9):
                     val = 0
                 self.m[i][j] = val
@@ -87,7 +117,32 @@ class Sudoku():
             for j in range(0,9):
                 entry = self.entries[i][j]
                 entry.delete(0, tk.END)
-                entry.insert(0, 0)
+                entry.insert(0, "")
+                entry.config({"background" : "white"})
+
+    def check_input_sudoku(self):
+        self.valid_input = True
+        for i in range(0,9):
+            for j in range(0,9):
+                if(self.m[i][j] != 0):
+                    valid = self.check_value(self.m[i][j], i, j)
+                    if(not valid):
+                        self.valid_input = False
+                        self.change_color_bg_entries(i, j)
+
+    def check_input(self, messageinfo=False):
+        self.read_sudoku_from_window()
+        self.check_input_sudoku()
+        if(not self.valid_input):
+            self.print_error_message()
+        if(messageinfo and self.valid_input):
+            messagebox.showinfo("Info", "This input does not contain errors.")
+
+    def print_error_message(self):
+        messagebox.showerror("Error", "This input contains errors.")
+
+    def change_color_bg_entries(self, x, y):
+        self.entries[x][y].config({"background" : "red"})
 
 def main():
 
@@ -107,11 +162,28 @@ def main():
     root.resizable(0,0)
 
     large_font = ('Times New Roman', 30)
+
     entries = []
+
+    # I've could done this better, maybe next time...
     for i in range(0,9):
         r_entries = []
+        # black row every 3 rows
+        if(i!=0 and i%3 == 0):
+            r_frame = tk.Frame(root, height=5, bg="black")
+            r_frame.pack(side="top", fill="x")
+
+        r_frame = tk.Frame(root)
+        r_frame.pack(side="top")
         for j in range(0,9):
-            entry = tk.Entry(root, width=2, font=large_font)
+            # black column every 3 columns
+            if(j!=0 and j%3 == 0):
+                c_frame = tk.Frame(r_frame, width=5, bg="black")
+                c_frame.pack(side="left", fill="y")
+
+            c_frame = tk.Frame(r_frame)
+            c_frame.pack(side="left")
+            entry = tk.Entry(c_frame, width=2, font=large_font)
             entry.grid(row=i, column=j)
             r_entries.append(entry)
         entries.append(r_entries)
@@ -119,9 +191,12 @@ def main():
     sudoku = Sudoku(m, entries)
 
     frame = tk.Frame(root)
-    frame.grid(row=i+1, columnspan=9)
+    frame.pack(side="top")
 
-    solve_button = tk.Button(frame, text="Solve...", width=7, command=lambda:sudoku.solve_sudoku())
+    check_button = tk.Button(frame, text="Check input", width=9, command=lambda:sudoku.check_input(messageinfo=True))
+    check_button.pack(side="left")
+
+    solve_button = tk.Button(frame, bg="green", text="Solve", width=7, command=lambda:sudoku.solve_sudoku())
     solve_button.pack(side="left")
 
     clear_button = tk.Button(frame, text="Clear", width=7, command=lambda:sudoku.clear_window())
